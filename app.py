@@ -74,36 +74,55 @@ def logout():
 @app.route("/start_install", methods=["POST"])
 @login_required
 def start_install():
+    """
+    Automatic server/GUI installation and setup for GNS3 labs.
+    - kind: "server" or "gui"
+    - dry: True/False
+    """
     data = request.json
     kind = data.get("kind", "server")
     dry_run = data.get("dry", False)
     task_id = str(uuid.uuid4())
     tasks[task_id] = queue.Queue()
 
-    server_cmds = [
-        "sudo apt update -y",
-        "sudo apt install -y software-properties-common apt-transport-https curl gnupg lsb-release",
-        "sudo add-apt-repository -y ppa:wireshark-dev/stable",
-        "sudo apt update -y && apt install -y wireshark",
-        "sudo usermod -a -G wireshark $(whoami)",
-        "sudo chgrp wireshark /usr/bin/dumpcap && chmod 750 /usr/bin/dumpcap",
-        "sudo setcap cap_net_raw,cap_net_admin=eip /usr/bin/dumpcap",
-        "sudo add-apt-repository -y ppa:gns3/ppa",
-        "sudo apt update -y && apt install -y gns3-server gns3-gui",
-        "sudo dpkg --add-architecture i386 && apt update -y",
-        "sudo curl -fsSL https://get.docker.com -o /tmp/get-docker.sh && sh /tmp/get-docker.sh",
-        "sudo apt install -y ubridge qemu-kvm qemu-utils libvirt-daemon-system libvirt-clients virtinst bridge-utils gns3-iou",
-        "for g in ubridge libvirt kvm wireshark docker; do usermod -aG $g $(whoami); done",
-        "mkdir -p /opt/gns3/projects && chown -R $(whoami):$(whoami) /opt/gns3",
-   
-        "gns3 --version && docker --version"
-    ]
+    cmds = []
 
-    gui_cmds = ["sudo apt update -y && sudo apt install -y gns3-gui"]
+    if kind == "server":
+        # Install GNS3 server if missing
+        cmds.append(
+            "command -v gns3server >/dev/null 2>&1 || "
+            "echo '[INFO] GNS3 server not found. Installing...' && "
+            "sudo apt update -y && "
+            "sudo apt install -y software-properties-common apt-transport-https curl gnupg lsb-release && "
+            "sudo add-apt-repository -y ppa:wireshark-dev/stable && "
+            "sudo apt update -y && sudo apt install -y wireshark && "
+            "sudo usermod -a -G wireshark $(whoami) && "
+            "sudo chgrp wireshark /usr/bin/dumpcap && sudo chmod 750 /usr/bin/dumpcap && "
+            "sudo setcap cap_net_raw,cap_net_admin=eip /usr/bin/dumpcap && "
+            "sudo add-apt-repository -y ppa:gns3/ppa && "
+            "sudo apt update -y && sudo apt install -y gns3-server gns3-gui && "
+            "sudo dpkg --add-architecture i386 && sudo apt update -y && "
+            "curl -fsSL https://get.docker.com -o /tmp/get-docker.sh && sudo sh /tmp/get-docker.sh && "
+            "sudo apt install -y ubridge qemu-kvm qemu-utils libvirt-daemon-system libvirt-clients virtinst bridge-utils gns3-iou"
+        )
+        # Create projects folder
+        cmds.append("mkdir -p /opt/gns3/projects && chown -R $(whoami):$(whoami) /opt/gns3/projects")
+        # Show versions
+        cmds.append("gns3server --version || echo '[INFO] GNS3 server not available'")
+        cmds.append("docker --version || echo '[INFO] Docker not available'")
 
-    cmds = server_cmds if kind == "server" else gui_cmds
+    elif kind == "gui":
+        # Install GNS3 GUI if missing
+        cmds.append(
+            "command -v gns3 >/dev/null 2>&1 || "
+            "echo '[INFO] GNS3 GUI not found. Installing...' && "
+            "sudo apt update -y && sudo apt install -y gns3-gui"
+        )
+        cmds.append("echo '[INFO] GUI will connect to server at localhost or configured IP.'")
+
     threading.Thread(target=run_commands, args=(task_id, cmds, dry_run), daemon=True).start()
     return jsonify({"task_id": task_id, "stream_url": url_for("stream", task_id=task_id)})
+
 
 @app.route("/stream/<task_id>")
 @login_required
