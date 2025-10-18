@@ -94,7 +94,7 @@ def start_install():
             "nohup gns3server >/dev/null 2>&1 & "
             "else "
             "echo '[INFO] GNS3 server not found. Installing...' && "
-            "sudo add-apt-repository -y ppa:gns3/ppa && "
+            
             "sudo apt update -y && sudo apt install -y gns3-server gns3-gui && "
             "mkdir -p /opt/gns3/projects && chown -R $(whoami):$(whoami) /opt/gns3/projects && "
             "nohup gns3server >/dev/null 2>&1 & "
