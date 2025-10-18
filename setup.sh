@@ -57,6 +57,9 @@ else
     exit 1
 fi
 
+sudo mkdir -p /var/log/gns3lab
+sudo chown -R $USER:$USER /var/log/gns3lab
+
 
 # Run Python app
 echo "🚀 Running gns3-vm-ui.py..."
