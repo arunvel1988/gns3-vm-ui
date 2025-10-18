@@ -1,0 +1,20 @@
+body {
+  background: radial-gradient(circle at top,#002244,#000);
+  color: #dfe7ef;
+  font-family: "Inter", sans-serif;
+}
+.glass-card {
+  background: rgba(255,255,255,0.1);
+  border-radius: 15px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 0 20px rgba(0,0,0,0.4);
+}
+.log-area {
+  background: #0d1117;
+  color: #a0ffa0;
+  padding: 10px;
+  height: 400px;
+  border-radius: 10px;
+  overflow:auto;
+  font-family: monospace;
+}
