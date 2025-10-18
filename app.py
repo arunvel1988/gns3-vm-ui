@@ -71,12 +71,13 @@ def logout():
     session.clear()
     return redirect(url_for("login"))
 ######################################################################
+
 @app.route("/start_install", methods=["POST"])
 @login_required
 def start_install():
     """
     Smart GNS3 starter (minimal):
-    - Installs GNS3 server and GUI only
+    - Installs GNS3 server and GUI using Python virtual environment
     - Starts GNS3 server if already installed
     """
     data = request.json
@@ -86,35 +87,39 @@ def start_install():
     tasks[task_id] = queue.Queue()
     cmds = []
 
+    gns3_venv_path = "$HOME/gns3-venv"
+
     if kind == "server":
-        # Check & start GNS3 server
+        # Check & start GNS3 server using virtualenv
         cmds.append(
-            "if command -v gns3server >/dev/null 2>&1; then "
-            "echo '[INFO] GNS3 server already installed. Starting...'; "
-            "nohup gns3server >/dev/null 2>&1 & "
+            f"if [ -x {gns3_venv_path}/bin/gns3server ]; then "
+            f"echo '[INFO] GNS3 server already installed in venv. Starting...'; "
+            f"nohup {gns3_venv_path}/bin/gns3server --host 0.0.0.0 --port 3080 >/dev/null 2>&1 & "
             "else "
-            "echo '[INFO] GNS3 server not found. Installing...' && "
-            
-            "sudo apt update -y && sudo apt install -y gns3-server gns3-gui && "
-            "mkdir -p /opt/gns3/projects && chown -R $(whoami):$(whoami) /opt/gns3/projects && "
-            "nohup gns3server >/dev/null 2>&1 & "
+            f"echo '[INFO] GNS3 server not found. Installing in Python venv...' && "
+            f"sudo apt update -y && sudo apt install -y python3-pip python3-venv python3-setuptools && "
+            f"python3 -m venv {gns3_venv_path} && source {gns3_venv_path}/bin/activate && "
+            f"pip install --upgrade pip && pip install gns3-server gns3-gui && "
+            f"mkdir -p /opt/gns3/projects && chown -R $(whoami):$(whoami) /opt/gns3/projects && "
+            f"nohup {gns3_venv_path}/bin/gns3server --host 0.0.0.0 --port 3080 >/dev/null 2>&1 & "
             "fi"
         )
-        # Show version
-        cmds.append("gns3server --version || echo '[INFO] GNS3 server not available'")
-        cmds.append("gns3 --version || echo '[INFO] GNS3 GUI not available'")
+        # Show versions
+        cmds.append(f"{gns3_venv_path}/bin/gns3server --version || echo '[INFO] GNS3 server not available'")
+        cmds.append(f"{gns3_venv_path}/bin/gns3 --version || echo '[INFO] GNS3 GUI not available'")
 
     elif kind == "gui":
-        # Start GUI if installed
+        # Start GUI if installed in venv
         cmds.append(
-            "if command -v gns3 >/dev/null 2>&1; then "
-            "echo '[INFO] GNS3 GUI already installed. Starting...'; "
-            "gns3 & "
+            f"if [ -x {gns3_venv_path}/bin/gns3 ]; then "
+            f"echo '[INFO] GNS3 GUI already installed in venv. Starting...'; "
+            f"{gns3_venv_path}/bin/gns3 & "
             "else "
-            "echo '[INFO] GNS3 GUI not found. Installing...' && "
-            "sudo add-apt-repository -y ppa:gns3/ppa && "
-            "sudo apt update -y && sudo apt install -y gns3-gui && "
-            "gns3 & "
+            f"echo '[INFO] GNS3 GUI not found. Installing in Python venv...' && "
+            f"sudo apt update -y && sudo apt install -y python3-pip python3-venv python3-setuptools && "
+            f"python3 -m venv {gns3_venv_path} && source {gns3_venv_path}/bin/activate && "
+            f"pip install --upgrade pip && pip install gns3-gui && "
+            f"{gns3_venv_path}/bin/gns3 & "
             "fi"
         )
 
