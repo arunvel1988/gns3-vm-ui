@@ -81,25 +81,25 @@ def start_install():
     tasks[task_id] = queue.Queue()
 
     server_cmds = [
-        "apt update -y",
-        "apt install -y software-properties-common apt-transport-https curl gnupg lsb-release",
-        "add-apt-repository -y ppa:wireshark-dev/stable",
-        "apt update -y && apt install -y wireshark",
-        "usermod -a -G wireshark $(whoami)",
-        "chgrp wireshark /usr/bin/dumpcap && chmod 750 /usr/bin/dumpcap",
-        "setcap cap_net_raw,cap_net_admin=eip /usr/bin/dumpcap",
-        "add-apt-repository -y ppa:gns3/ppa",
-        "apt update -y && apt install -y gns3-server gns3-gui",
-        "dpkg --add-architecture i386 && apt update -y",
-        "curl -fsSL https://get.docker.com -o /tmp/get-docker.sh && sh /tmp/get-docker.sh",
-        "apt install -y ubridge qemu-kvm qemu-utils libvirt-daemon-system libvirt-clients virtinst bridge-utils gns3-iou",
+        "sudo apt update -y",
+        "sudo apt install -y software-properties-common apt-transport-https curl gnupg lsb-release",
+        "sudo add-apt-repository -y ppa:wireshark-dev/stable",
+        "sudo apt update -y && apt install -y wireshark",
+        "sudo usermod -a -G wireshark $(whoami)",
+        "sudo chgrp wireshark /usr/bin/dumpcap && chmod 750 /usr/bin/dumpcap",
+        "sudo setcap cap_net_raw,cap_net_admin=eip /usr/bin/dumpcap",
+        "sudo add-apt-repository -y ppa:gns3/ppa",
+        "sudo apt update -y && apt install -y gns3-server gns3-gui",
+        "sudo dpkg --add-architecture i386 && apt update -y",
+        "sudo curl -fsSL https://get.docker.com -o /tmp/get-docker.sh && sh /tmp/get-docker.sh",
+        "sudo apt install -y ubridge qemu-kvm qemu-utils libvirt-daemon-system libvirt-clients virtinst bridge-utils gns3-iou",
         "for g in ubridge libvirt kvm wireshark docker; do usermod -aG $g $(whoami); done",
         "mkdir -p /opt/gns3/projects && chown -R $(whoami):$(whoami) /opt/gns3",
-        "systemctl enable --now gns3 || true",
+   
         "gns3 --version && docker --version"
     ]
 
-    gui_cmds = ["apt update -y && apt install -y gns3-gui"]
+    gui_cmds = ["sudo apt update -y && sudo apt install -y gns3-gui"]
 
     cmds = server_cmds if kind == "server" else gui_cmds
     threading.Thread(target=run_commands, args=(task_id, cmds, dry_run), daemon=True).start()
