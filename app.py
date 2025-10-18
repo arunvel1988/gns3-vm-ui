@@ -75,11 +75,9 @@ def logout():
 @login_required
 def start_install():
     """
-    Smart GNS3 starter:
-    - Starts GNS3 server if installed
-    - Installs only missing components
-    - Supports GUI and server
-    - Docker optional
+    Smart GNS3 starter (minimal):
+    - Installs GNS3 server and GUI only
+    - Starts GNS3 server if already installed
     """
     data = request.json
     kind = data.get("kind", "server")
@@ -93,28 +91,18 @@ def start_install():
         cmds.append(
             "if command -v gns3server >/dev/null 2>&1; then "
             "echo '[INFO] GNS3 server already installed. Starting...'; "
-            "gns3server & "
+            "nohup gns3server >/dev/null 2>&1 & "
             "else "
             "echo '[INFO] GNS3 server not found. Installing...' && "
-            "sudo apt update -y && "
-            "sudo apt install -y software-properties-common apt-transport-https curl gnupg lsb-release && "
-            "sudo add-apt-repository -y ppa:wireshark-dev/stable && "
-            "sudo apt update -y && sudo apt install -y wireshark && "
-            "sudo usermod -a -G wireshark $(whoami) && "
-            "sudo chgrp wireshark /usr/bin/dumpcap && sudo chmod 750 /usr/bin/dumpcap && "
-            "sudo setcap cap_net_raw,cap_net_admin=eip /usr/bin/dumpcap && "
             "sudo add-apt-repository -y ppa:gns3/ppa && "
             "sudo apt update -y && sudo apt install -y gns3-server gns3-gui && "
-            "sudo dpkg --add-architecture i386 && sudo apt update -y && "
-            "command -v docker >/dev/null 2>&1 || (curl -fsSL https://get.docker.com -o /tmp/get-docker.sh && sudo sh /tmp/get-docker.sh) && "
-            "sudo apt install -y ubridge qemu-kvm qemu-utils libvirt-daemon-system libvirt-clients virtinst bridge-utils gns3-iou && "
             "mkdir -p /opt/gns3/projects && chown -R $(whoami):$(whoami) /opt/gns3/projects && "
-            "gns3server & "
+            "nohup gns3server >/dev/null 2>&1 & "
             "fi"
         )
-        # Show versions
+        # Show version
         cmds.append("gns3server --version || echo '[INFO] GNS3 server not available'")
-        cmds.append("docker --version || echo '[INFO] Docker not available'")
+        cmds.append("gns3 --version || echo '[INFO] GNS3 GUI not available'")
 
     elif kind == "gui":
         # Start GUI if installed
@@ -124,6 +112,7 @@ def start_install():
             "gns3 & "
             "else "
             "echo '[INFO] GNS3 GUI not found. Installing...' && "
+            "sudo add-apt-repository -y ppa:gns3/ppa && "
             "sudo apt update -y && sudo apt install -y gns3-gui && "
             "gns3 & "
             "fi"
@@ -131,6 +120,7 @@ def start_install():
 
     threading.Thread(target=run_commands, args=(task_id, cmds, dry_run), daemon=True).start()
     return jsonify({"task_id": task_id, "stream_url": url_for("stream", task_id=task_id)})
+
 
 #############################################################################################
 
