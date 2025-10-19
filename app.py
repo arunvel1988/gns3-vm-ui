@@ -77,65 +77,60 @@ def logout():
 def start_install():
     """
     Smart GNS3 starter (idempotent):
-    - Installs GNS3 server and GUI only if not present
-    - Starts GNS3 server if not already running
+    - Installs GNS3 server or GUI if not present
+    - Starts them only if not already running
     """
     data = request.json
-    kind = data.get("kind", "server")  # server or gui
+    kind = data.get("kind", "server")  # "server" or "gui"
     dry_run = data.get("dry", False)
     task_id = str(uuid.uuid4())
     tasks[task_id] = queue.Queue()
     cmds = []
 
     if kind == "server":
-        cmds.extend([
-            # Check if gns3server exists
-            "if ! command -v gns3server >/dev/null 2>&1; then "
-            "echo '[INFO] Installing GNS3 server...' && "
-            "sudo apt install -y software-properties-common && "
-            "sudo add-apt-repository -y ppa:gns3/ppa && "
-            
-            "sudo apt update -y && "
-            "sudo apt install -y gns3-server; "
-            "fi",
-            
-            # Ensure project folder exists
-            "sudo mkdir -p /opt/gns3/projects && sudo chown -R $(whoami):$(whoami) /opt/gns3/projects",
-            
-            # Start server if not running
-            "if ! pgrep -f 'gns3server' >/dev/null 2>&1; then "
-            "echo '[INFO] Starting GNS3 server...' && "
-            "nohup gns3server --host 0.0.0.0 --port 3080 >/dev/null 2>&1 & "
-            "else "
-            "echo '[INFO] GNS3 server already running'; "
-            "fi",
-            
-            # Show version
-            "gns3server --version"
-        ])
-    
-    elif kind == "gui":
-        cmds.extend([
-            # Check if gns3 GUI exists
-            "if ! command -v gns3 >/dev/null 2>&1; then "
-            "echo '[INFO] Installing GNS3 GUI...' && "
-            "sudo apt install -y software-properties-common && "
-            "sudo add-apt-repository -y ppa:gns3/ppa && "
-            "sudo apt update -y && "
-            "sudo apt install -y gns3-gui; "
-            "fi",
-            
-            # Start GUI if not already running
-            "if ! pgrep -f 'gns3' >/dev/null 2>&1; then "
-            "echo '[INFO] Starting GNS3 GUI...' && gns3 & "
-            "else "
-            "echo '[INFO] GNS3 GUI already running'; "
-            "fi",
-            
-            # Show version
-            "gns3 --version"
-        ])
+        cmds.append("""
+if ! command -v gns3server >/dev/null 2>&1; then
+    echo '[INFO] Installing GNS3 server...'
+    sudo apt install -y software-properties-common
+    sudo add-apt-repository -y ppa:gns3/ppa
+    sudo apt update -y
+    sudo apt install -y gns3-server
+fi
 
+sudo mkdir -p /opt/gns3/projects
+sudo chown -R $(whoami):$(whoami) /opt/gns3/projects
+
+if ! pgrep -f 'gns3server' >/dev/null 2>&1; then
+    echo '[INFO] Starting GNS3 server...'
+    nohup gns3server --host 0.0.0.0 --port 3080 >/dev/null 2>&1 &
+else
+    echo '[INFO] GNS3 server already running'
+fi
+
+gns3server --version
+""")
+
+    elif kind == "gui":
+        cmds.append("""
+if ! command -v gns3 >/dev/null 2>&1; then
+    echo '[INFO] Installing GNS3 GUI...'
+    sudo apt install -y software-properties-common
+    sudo add-apt-repository -y ppa:gns3/ppa
+    sudo apt update -y
+    sudo apt install -y gns3-gui
+fi
+
+if ! pgrep -f 'gns3' >/dev/null 2>&1; then
+    echo '[INFO] Starting GNS3 GUI...'
+    gns3 &
+else
+    echo '[INFO] GNS3 GUI already running'
+fi
+
+gns3 --version
+""")
+
+    # Run in background thread
     threading.Thread(target=run_commands, args=(task_id, cmds, dry_run), daemon=True).start()
 
     return jsonify({
