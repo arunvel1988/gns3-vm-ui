@@ -119,6 +119,7 @@ def start_install():
             # Check if gns3 GUI exists
             "if ! command -v gns3 >/dev/null 2>&1; then "
             "echo '[INFO] Installing GNS3 GUI...' && "
+            "sudo apt install -y software-properties-common && "
             "sudo add-apt-repository -y ppa:gns3/ppa && "
             "sudo apt update -y && "
             "sudo apt install -y gns3-gui; "
