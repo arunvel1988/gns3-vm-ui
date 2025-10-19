@@ -98,7 +98,7 @@ def start_install():
             "fi",
             
             # Ensure project folder exists
-            "mkdir -p /opt/gns3/projects && sudo chown -R $(whoami):$(whoami) /opt/gns3/projects",
+            "sudo mkdir -p /opt/gns3/projects && sudo chown -R $(whoami):$(whoami) /opt/gns3/projects",
             
             # Start server if not running
             "if ! pgrep -f 'gns3server' >/dev/null 2>&1; then "
