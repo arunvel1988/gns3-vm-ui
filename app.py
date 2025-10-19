@@ -78,7 +78,7 @@ def start_install():
     """
     Smart GNS3 starter (idempotent):
     - Installs GNS3 server or GUI if not present
-    - Starts them only if not already running
+    - Starts them only if not already running/responding
     """
     data = request.json
     kind = data.get("kind", "server")  # "server" or "gui"
@@ -100,11 +100,12 @@ fi
 sudo mkdir -p /opt/gns3/projects
 sudo chown -R $(whoami):$(whoami) /opt/gns3/projects
 
-if ! pgrep -f 'gns3server' >/dev/null 2>&1; then
+# Check if server is responding
+if ! curl -s http://127.0.0.1:3080/v2/version >/dev/null 2>&1; then
     echo '[INFO] Starting GNS3 server...'
     nohup gns3server --host 0.0.0.0 --port 3080 >/dev/null 2>&1 &
 else
-    echo '[INFO] GNS3 server already running'
+    echo '[INFO] GNS3 server already running and responding'
 fi
 
 gns3server --version
@@ -120,6 +121,7 @@ if ! command -v gns3 >/dev/null 2>&1; then
     sudo apt install -y gns3-gui
 fi
 
+# Check if GUI is running
 if ! pgrep -f 'gns3' >/dev/null 2>&1; then
     echo '[INFO] Starting GNS3 GUI...'
     gns3 &
@@ -130,14 +132,13 @@ fi
 gns3 --version
 """)
 
-    # Run in background thread
+    # Run the commands in a background thread
     threading.Thread(target=run_commands, args=(task_id, cmds, dry_run), daemon=True).start()
 
     return jsonify({
         "task_id": task_id,
         "stream_url": url_for("stream", task_id=task_id)
     })
-
 
 #############################################################################################
 
