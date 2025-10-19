@@ -92,8 +92,9 @@ def start_install():
             # Check if gns3server exists
             "if ! command -v gns3server >/dev/null 2>&1; then "
             "echo '[INFO] Installing GNS3 server...' && "
-            "sudo add-apt-repository -y ppa:gns3/ppa && "
             "sudo apt install -y software-properties-common && "
+            "sudo add-apt-repository -y ppa:gns3/ppa && "
+            
             "sudo apt update -y && "
             "sudo apt install -y gns3-server; "
             "fi",
