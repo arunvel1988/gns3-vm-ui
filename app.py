@@ -115,10 +115,13 @@ gns3server --version
         cmds.append("""
 if ! command -v gns3 >/dev/null 2>&1; then
     echo '[INFO] Installing GNS3 GUI...'
+    echo "gns3-common gns3-common/allow_non_root boolean true" | sudo debconf-set-selections
+    echo "ubridge ubridge/allow_non_root boolean true" | sudo debconf-set-selections
+    echo "wireshark-common wireshark-common/install-setuid boolean true" | sudo debconf-set-selections
     sudo apt install -y software-properties-common
     sudo add-apt-repository -y ppa:gns3/ppa
     sudo apt update -y
-    sudo apt install -y gns3-gui
+    sudo DEBIAN_FRONTEND=noninteractive apt install -y gns3-gui
 fi
 
 # Check if GUI is running
