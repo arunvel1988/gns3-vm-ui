@@ -118,7 +118,9 @@ def start_install():
             f"echo '[INFO] GNS3 GUI not found. Installing in Python venv...' && "
             f"sudo apt update -y && sudo apt install -y python3-pip python3-venv python3-setuptools && "
             f"python3 -m venv {gns3_venv_path} && source {gns3_venv_path}/bin/activate && "
-            f"pip install --upgrade pip && pip install gns3-gui && "
+            f"pip install --upgrade pip setuptools wheel && "
+            f"pip install PyQt5 PyQtWebEngine sip && "
+            f"pip install --force-reinstall gns3-gui && "
             f"{gns3_venv_path}/bin/gns3 & "
             "fi"
         )
