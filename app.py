@@ -76,57 +76,69 @@ def logout():
 @login_required
 def start_install():
     """
-    Smart GNS3 starter (minimal):
-    - Installs GNS3 server and GUI using Python virtual environment
-    - Starts GNS3 server if already installed
+    Smart GNS3 starter (idempotent):
+    - Installs GNS3 server and GUI only if not present
+    - Starts GNS3 server if not already running
     """
     data = request.json
-    kind = data.get("kind", "server")
+    kind = data.get("kind", "server")  # server or gui
     dry_run = data.get("dry", False)
     task_id = str(uuid.uuid4())
     tasks[task_id] = queue.Queue()
     cmds = []
 
-    gns3_venv_path = "$HOME/gns3-venv"
-
     if kind == "server":
-        # Check & start GNS3 server using virtualenv
-        cmds.append(
-            f"if [ -x {gns3_venv_path}/bin/gns3server ]; then "
-            f"echo '[INFO] GNS3 server already installed in venv. Starting...'; "
-            f"nohup {gns3_venv_path}/bin/gns3server --host 0.0.0.0 --port 3080 >/dev/null 2>&1 & "
+        cmds.extend([
+            # Check if gns3server exists
+            "if ! command -v gns3server >/dev/null 2>&1; then "
+            "echo '[INFO] Installing GNS3 server...' && "
+            "sudo add-apt-repository -y ppa:gns3/ppa && "
+            "sudo apt update -y && "
+            "sudo apt install -y gns3-server; "
+            "fi",
+            
+            # Ensure project folder exists
+            "mkdir -p /opt/gns3/projects && sudo chown -R $(whoami):$(whoami) /opt/gns3/projects",
+            
+            # Start server if not running
+            "if ! pgrep -f 'gns3server' >/dev/null 2>&1; then "
+            "echo '[INFO] Starting GNS3 server...' && "
+            "nohup gns3server --host 0.0.0.0 --port 3080 >/dev/null 2>&1 & "
             "else "
-            f"echo '[INFO] GNS3 server not found. Installing in Python venv...' && "
-            f"sudo apt update -y && sudo apt install -y python3-pip python3-venv python3-setuptools && "
-            f"python3 -m venv {gns3_venv_path} && source {gns3_venv_path}/bin/activate && "
-            f"pip install --upgrade pip && pip install gns3-server gns3-gui && "
-            f"mkdir -p /opt/gns3/projects && chown -R $(whoami):$(whoami) /opt/gns3/projects && "
-            f"nohup {gns3_venv_path}/bin/gns3server --host 0.0.0.0 --port 3080 >/dev/null 2>&1 & "
-            "fi"
-        )
-        # Show versions
-        cmds.append(f"{gns3_venv_path}/bin/gns3server --version || echo '[INFO] GNS3 server not available'")
-        cmds.append(f"{gns3_venv_path}/bin/gns3 --version || echo '[INFO] GNS3 GUI not available'")
-
+            "echo '[INFO] GNS3 server already running'; "
+            "fi",
+            
+            # Show version
+            "gns3server --version"
+        ])
+    
     elif kind == "gui":
-        # Start GUI if installed in venv
-        cmds.append(
-            f"if [ -x {gns3_venv_path}/bin/gns3 ]; then "
-            f"echo '[INFO] GNS3 GUI already installed in venv. Starting...'; "
-            f"{gns3_venv_path}/bin/gns3 & "
+        cmds.extend([
+            # Check if gns3 GUI exists
+            "if ! command -v gns3 >/dev/null 2>&1; then "
+            "echo '[INFO] Installing GNS3 GUI...' && "
+            "sudo add-apt-repository -y ppa:gns3/ppa && "
+            "sudo apt update -y && "
+            "sudo apt install -y gns3-gui; "
+            "fi",
+            
+            # Start GUI if not already running
+            "if ! pgrep -f 'gns3' >/dev/null 2>&1; then "
+            "echo '[INFO] Starting GNS3 GUI...' && gns3 & "
             "else "
-            f"echo '[INFO] GNS3 GUI not found. Installing in Python venv...' && "
-            f"sudo apt update -y && sudo apt install -y python3-pip python3-venv python3-setuptools && "
-            f"python3 -m venv {gns3_venv_path} && source {gns3_venv_path}/bin/activate && "
-            f"pip install --upgrade pip setuptools wheel && "
-            f"pip install PyQt5 PyQtWebEngine sip && "
-            f"pip install --force-reinstall gns3-gui && "
-            f"{gns3_venv_path}/bin/gns3 & "
-            "fi"
-        )
+            "echo '[INFO] GNS3 GUI already running'; "
+            "fi",
+            
+            # Show version
+            "gns3 --version"
+        ])
 
     threading.Thread(target=run_commands, args=(task_id, cmds, dry_run), daemon=True).start()
-    return jsonify({"task_id": task_id, "stream_url": url_for("stream", task_id=task_id)})
+
+    return jsonify({
+        "task_id": task_id,
+        "stream_url": url_for("stream", task_id=task_id)
+    })
 
 
 #############################################################################################
