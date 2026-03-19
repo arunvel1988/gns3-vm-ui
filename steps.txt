@@ -1,0 +1,23 @@
+#########
+gns3server --host 0.0.0.0 --port 3080 --debug
+
+
+sudo apt update -y
+sudo apt install ubridge
+ubridge -v
+sudo usermod -aG ubridge $USER
+sudo usermod -aG libvirt $USER
+sudo usermod -aG kvm $USER
+
+
+
+#then restart machine
+
+sudo apt update -y
+
+
+sudo apt install telnet -y
+#########
+
+
+gns3
